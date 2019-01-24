@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
+
+	"9fans.net/go/plumb"
 )
 
 type storeMsg struct {
@@ -15,43 +15,47 @@ type storeMsg struct {
 	dst string
 	wdir string
 	msgtype string
-	attr map[string]string
+	attr *plumb.Attribute
 	ndata int
 	data string
 }
 
 func (s storeMsg) send() error {
-	f, err := os.OpenFile("/mnt/storage/send", os.O_WRONLY, 0644)
+	fd, err := os.OpenFile("/mnt/plumb/send", os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	attr := make([]string, 0, len(s.attr))
-	for v := range s.attr {
-		attr = append(attr, v)
+	message := &plumb.Message{
+		Src: s.src,
+		Dst: s.dst,
+		Dir: s.wdir,
+		Type: s.msgtype,
+		Attr: s.attr,
+		Data: []byte(s.data),
 	}
-	fmt.Fprintf(f, "%s\n%s\n%s\n%s\n%d\n%s", 
-		s.src,
-		s.dst,
-		s.wdir,
-		s.msgtype,
-		strings.Join(attr, " "),
-		s.ndata,
-		s.data,
-	)
-	return nil
+	return message.Send(fd)
 }
 
-func newStoreMsg(mediaType, wdir string, params map[string]string) *storeMsg {
+func newStoreMsg(mediaType, wdir string, attr *plumb.Attribute) *storeMsg {
 	return &storeMsg{
 		src: os.Args[0],
 		dst: "",
 		wdir: wdir,
 		msgtype: mediaType,
-		attr: params,
+		attr: attr,
 		ndata: len(os.Args[1]),
 		data: os.Args[1],
 	}
+}
+
+func paramsToAttr(params map[string]string) *plumb.Attribute {
+	// Attribute is a linked list - we only get one from content-type, the encoding
+	var attr *plumb.Attribute
+	for key, value := range params {
+		attr.Name = key
+		attr.Value = value
+	}
+	return attr
 }
 
 func content(testUrl string) (string, error) {
@@ -92,7 +96,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	storeMsg := newStoreMsg(mediaType, wdir, params)
+	attr := paramsToAttr(params)
+	storeMsg := newStoreMsg(mediaType, wdir, attr)
 	err = storeMsg.send()
 	if err != nil {
 		log.Fatal(err)

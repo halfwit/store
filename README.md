@@ -2,7 +2,7 @@
 
 ## Overview
 
-Slightly modified Plan9 plumber, used to store URL endpoints, using plan9 plumber rule files.
+This utility is an extension to plan9's plumber to handle storage of remote resources, referenced by URL.
 
 ## Usage
 
@@ -10,34 +10,41 @@ Slightly modified Plan9 plumber, used to store URL endpoints, using plan9 plumbe
 
 ## Installation
 
-Requires Plan9, hasn't been tested with plan9port yet
 Requires Go to build `store` binary:
 
 ```
-go get github.com/halfwit/storage/store
-go install github.com/halfwit/storage/store
+go get github.com/halfwit/store
+go install github.com/halfwit/store
 
 ```
 
-## Caveats
+## Setup
 
-This differs from Plumber's rules handling in that it introduces a new verb and a new action.
-
-`output` - this sets the file that a subsequent `fetch`. 
+A `storage` ruleset is included, which can be called in your lib/plumbing via `include storage`. 
+It defines the following:
 
 ```
-# this will attempt to create $home/doc if it doesn't exist
+
+```
+
+Adding additional rules is trivial; simply match `type` to your target mimetype, and continue on with a normal rule.
+
+## Example rules file for plumber
+
+```
+
+# 'store https://some.domain/path/to/file.pdf'
 type matches application/$document
-data matches 'https?://([^ ]/)+([^ ]+)'
-arg isdir $home/doc
-output is $home/doc/$2
-store fetch $0
+dst is store
+data matches 'https?://([^ ]/)+([^ ]+)' // validate url
+arg isdir /usr/halfwit/doc // make sure our document folder exists
+data set $dir/$2 // set to 'file.pdf'
+plumb start rc -c 'hget -o '$data' '$0'
 
 type matches application/$document
-data matches 'https?://[^ ]/+[^ ]+'
-data matches 'https://somesite/([^ ]+)'
-data set 'https://somemirrorsite/$1'
-output is $data
-store fetch $data
+dst is store
+data matches 'https://(github.com/[^ ]+)'
+arg isdir /usr/halfwit/src/$1
+plumb start rc -c 'cd '$dir' && git clone '$0
 
 ```
