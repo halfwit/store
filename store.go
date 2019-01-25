@@ -16,7 +16,7 @@ var (
 	plumbfile = flag.String("p", "/mnt/plumb/send", "write the message to plumbfile (default /mnt/plumb/send)")
 	attributes = flag.String("a", "", "set the attr field of the message (default is empty), expects key=value")
 	source = flag.String("s", "", "set the src field of the message (default is store)")
-	destination = flag.String("d", "", "set the dst filed of the message (default is empty)")
+	destination = flag.String("d", "store", "set the dst filed of the message (default is store)")
 	directory = flag.String("w", "", "set the wdir field of the message (default is current directory)")
 )
 
@@ -49,7 +49,7 @@ func (s storeMsg) send() error {
 func newStoreMsg(mediaType, wdir, arg string, attr *plumb.Attribute) *storeMsg {
 	sf := &storeMsg{
 		src: os.Args[0],
-		dst: "",
+		dst: "store",
 		wdir: wdir,
 		msgtype: mediaType,
 		attr: attr,
@@ -70,7 +70,7 @@ func newStoreMsg(mediaType, wdir, arg string, attr *plumb.Attribute) *storeMsg {
 
 func paramsToAttr(params map[string]string) *plumb.Attribute {
 	// Attribute is a linked list - we only get one from content-type, the encoding
-	var attr *plumb.Attribute
+	attr := &plumb.Attribute{Name: "", Value: ""}
 	for key, value := range params {
 		attr.Name = key
 		attr.Value = value
