@@ -100,7 +100,14 @@ func content(testUrl string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return http.DetectContentType(buf[:n]), nil
+	mime := http.DetectContentType(buf[:n])
+	if mime == "application/octet-stream" {
+		mime = r.Header.Get("Content-type")
+		if mime == "" {
+			return "text", nil
+		}
+	}
+	return mime, nil
 }
 
 func main() {
