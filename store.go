@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
+	"9fans.net/go/plan9"
 	"9fans.net/go/plumb"
 )
 
@@ -31,7 +31,8 @@ type storeMsg struct {
 }
 
 func (s storeMsg) send() error {
-	fd, err := os.OpenFile("/mnt/plumb/send", os.O_WRONLY, 0644)
+	// Flag for Unix as well
+	port, err := plumb.Open("send", plan9.OWRITE)
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func (s storeMsg) send() error {
 		Attr: s.attr,
 		Data: []byte(s.data),
 	}
-	return message.Send(fd)
+	return message.Send(port)
 }
 
 func newStoreMsg(mediaType, wdir, arg string, attr *plumb.Attribute) *storeMsg {
